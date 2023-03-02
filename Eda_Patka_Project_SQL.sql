@@ -167,6 +167,7 @@ ORDER BY round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) DESC;
 /*
  * 3.	Která kategorie potravin zdražuje nejpomaleji (je u ní nejnižší procentuální meziroční nárůst)?
  */
+
 -- VIEW Roční průměrná cena potravin
 CREATE OR REPLACE VIEW v_eda_patka_project_avg_food_price_by_year AS 
 SELECT 
@@ -325,7 +326,7 @@ ORDER BY price_wages_diff DESC;
 
 
 /*
- * Má výška HDP vliv na změny ve mzdách a cenách potravin? Neboli, pokud HDP vzroste výrazněji v jednom roce, 
+ * 5. Má výška HDP vliv na změny ve mzdách a cenách potravin? Neboli, pokud HDP vzroste výrazněji v jednom roce, 
  * projeví se to na cenách potravin či mzdách ve stejném nebo následujícím roce výraznějším růstem?
  */
 
