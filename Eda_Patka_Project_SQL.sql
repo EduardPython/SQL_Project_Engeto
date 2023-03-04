@@ -3,21 +3,21 @@
  * výsledkem jsou společné roky (2006–2018) 
  */
 
-SELECT * FROM czechia_price ORDER BY date_from;	-- (2006 - 2018)
-SELECT * FROM czechia_payroll ORDER BY payroll_year;		-- (2000 - 2021)
+SELECT * FROM czechia_price ORDER BY date_from;
+SELECT * FROM czechia_payroll ORDER BY payroll_year;	
 -- Tabulky cen potravin a průměrných mezd se prolínají v letech 2006 - 2018
 
 CREATE OR REPLACE TABLE t_eda_patka_project_SQL_primary_final AS 
 SELECT 
-	cpc.name AS 'food_category',
+	cpc.name AS food_category,
 	cpc.price_value,
 	cpc.price_unit,
-	cp.value AS 'price',
+	cp.value AS price,
 	cp.date_from,
 	cp.date_to,
 	cpay.payroll_year ,
-	cpay.value AS 'avg_wages',
-	cpib.name AS 'industry_branch'
+	cpay.value AS avg_wages,
+	cpib.name AS industry_branch
 FROM czechia_price cp
 JOIN czechia_payroll cpay 
 	ON YEAR(cp.date_from) = cpay.payroll_year
@@ -72,12 +72,12 @@ SELECT * FROM v_eda_patka_project_avg_wages_by_sector_and_year;
 CREATE OR REPLACE VIEW v_eda_patka_project_wages_growth_trend_by_sector_and_year AS 
 SELECT
 	newer_avg.industry_branch, 
-	older_avg.payroll_year AS 'older_year',
-	older_avg.avg_wages_CZK AS 'older_wages',
-	newer_avg.payroll_year AS 'newer_year',
-	newer_avg.avg_wages_CZK AS 'newer_wages',
-	newer_avg.avg_wages_CZK - older_avg.avg_wages_CZK AS 'wages_difference_CZK',
-	round(newer_avg.avg_wages_CZK * 100 / older_avg.avg_wages_CZK, 2) - 100 AS 'wages_difference_%',
+	older_avg.payroll_year AS older_year,
+	older_avg.avg_wages_CZK AS older_wages,
+	newer_avg.payroll_year AS newer_year,
+	newer_avg.avg_wages_CZK AS newer_wages,
+	newer_avg.avg_wages_CZK - older_avg.avg_wages_CZK AS wages_difference_czk,
+	round(newer_avg.avg_wages_CZK * 100 / older_avg.avg_wages_CZK, 2) - 100 AS wages_difference_percentage,
 	CASE
 		WHEN newer_avg.avg_wages_CZK > older_avg.avg_wages_CZK
 			THEN 'UP'
@@ -96,7 +96,7 @@ SELECT * FROM v_eda_patka_project_wages_growth_trend_by_sector_and_year;
 SELECT *
 FROM v_eda_patka_project_wages_growth_trend_by_sector_and_year
 WHERE wages_trend = 'DOWN'
-ORDER BY `wages_difference_%`;
+ORDER BY wages_difference_percentage;
 -- Největší meziroční pokles zaznamenalo odvětví Peněžnictví a pojišťovnictví v roce 2013, kdy se průměrná mzda snížila o -8,91 % z 50 254 Kč v roce 2012 na 45 775 Kč v roce 2013.
 -- Z celkových 228 měření byl pokles mzdy zaznamenán u 23 výsledků, což představuje přibližně 10 % ze všech měření.
 
@@ -108,12 +108,12 @@ WHERE payroll_year IN (2006, 2018);
 -- MZDOVÝ NÁRŮST CELKEM od roku 2006 do roku 2018 podle odvětví v %  
 SELECT
 	newer_avg.industry_branch, 
-	older_avg.payroll_year AS 'older_year',
-	older_avg.avg_wages_CZK AS 'older_wages',
-	newer_avg.payroll_year AS 'newer_year',
-	newer_avg.avg_wages_CZK AS 'newer_wages',
-	newer_avg.avg_wages_CZK - older_avg.avg_wages_CZK AS 'wages_difference_CZK',
-	round(newer_avg.avg_wages_CZK * 100 / older_avg.avg_wages_CZK, 2) - 100 AS 'wages_difference_%'
+	older_avg.payroll_year AS older_year,
+	older_avg.avg_wages_CZK AS older_wages,
+	newer_avg.payroll_year AS newer_year,
+	newer_avg.avg_wages_CZK AS newer_wages,
+	newer_avg.avg_wages_CZK - older_avg.avg_wages_CZK AS wages_difference_czk,
+	round(newer_avg.avg_wages_CZK * 100 / older_avg.avg_wages_CZK, 2) - 100 AS wages_difference_percentage
 FROM v_eda_patka_project_avg_wages_by_sector_and_year AS newer_avg
 JOIN v_eda_patka_project_avg_wages_by_sector_and_year AS older_avg
 	ON newer_avg.industry_branch = older_avg.industry_branch
@@ -131,7 +131,7 @@ SELECT
 	food_category, price_value, price_unit, payroll_year,
 	round(avg(price), 2) AS 'avg_price',
 	round(avg(avg_wages), 2) AS 'avg_wages',
-	round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) AS 'avg_purchasing_power'
+	round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) AS avg_purchasing_power
 FROM t_eda_patka_project_sql_primary_final
 WHERE payroll_year IN(2006, 2018)
 	AND food_category IN('Mléko polotučné pasterované', 'Chléb konzumní kmínový')
@@ -144,7 +144,7 @@ SELECT
 	food_category, price_value, price_unit, payroll_year,
 	round(avg(price), 2) AS avg_price,
 	round(avg(avg_wages), 2) AS avg_wages,
-	round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) AS 'avg_purchasing_power'
+	round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) AS avg_purchasing_power
 FROM t_eda_patka_project_sql_primary_final
 WHERE payroll_year IN(2006, 2018)
 	AND food_category IN('Mléko polotučné pasterované',  'Chléb konzumní kmínový')
@@ -155,7 +155,7 @@ SELECT
 	food_category, price_value, price_unit, payroll_year,
 	round(avg(price), 2) AS avg_price,
 	round(avg(avg_wages), 2) AS avg_wages,
-	round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) AS 'avg_purchasing_power',
+	round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) AS avg_purchasing_power,
 	industry_branch
 FROM t_eda_patka_project_sql_primary_final
 WHERE payroll_year IN(2006, 2018)
@@ -172,10 +172,10 @@ ORDER BY round((round(avg(avg_wages), 2)) / (round(avg(price), 2))) DESC;
 CREATE OR REPLACE VIEW v_eda_patka_project_avg_food_price_by_year AS 
 SELECT 
 	DISTINCT food_category,
-	price_value AS 'value', 
-	price_unit AS 'unit', 
-	payroll_year AS 'year', 
-	round(avg(price), 2) 'avg_price'
+	price_value AS value, 
+	price_unit AS unit, 
+	payroll_year AS year, 
+	round(avg(price), 2) AS avg_price
 FROM t_eda_patka_project_sql_primary_final
 GROUP BY food_category, payroll_year;
 
@@ -187,17 +187,17 @@ SELECT
 	DISTINCT older_year.food_category, 
 	older_year.value,
 	older_year.unit,
-	older_year.`year` AS 'older year',
-	older_year.avg_price AS 'older price',
-	newer_year.`year` AS 'newer year',
-	newer_year.avg_price AS 'newer price', 
-	newer_year.avg_price - older_year.avg_price AS 'price difference CZK',
-	round((newer_year.avg_price - older_year.avg_price) / older_year.avg_price * 100, 2) AS 'price difference %',
+	older_year.`year` AS older_year,
+	older_year.avg_price AS older_price,
+	newer_year.`year` AS newer_year,
+	newer_year.avg_price AS newer_price, 
+	newer_year.avg_price - older_year.avg_price AS price_difference_czk,
+	round((newer_year.avg_price - older_year.avg_price) / older_year.avg_price * 100, 2) AS price_diff_percentage,
 	CASE
 		WHEN newer_year.avg_price > older_year.avg_price
 		THEN 	'up'
 		ELSE 'down'
-	END AS 'price trend'
+	END AS price_trend
 FROM v_eda_patka_project_avg_food_price_by_year AS older_year
 JOIN v_eda_patka_project_avg_food_price_by_year AS newer_year 
 	ON older_year.food_category = newer_year.food_category
@@ -208,21 +208,21 @@ SELECT * FROM v_eda_patka_project_food_price_trend;
 
 -- Průměrný meziroční nárůst cen potravin mezi roky 2006 - 2018
 SELECT 
-	`older year` AS 'year from',
-	max(`newer year`) AS 'year to',
+	older_year AS year_from,
+	max(newer_year) AS year_to,
 	food_category,
-	round(avg(`price difference %`), 2) AS 'avg annual price growth in %'
+	round(avg(price_diff_percentage), 2) AS avg_annual_price_growth_in_percentage
 FROM v_eda_patka_project_food_price_trend
 GROUP BY food_category
-ORDER BY round(avg(`price difference %`), 2) ;
+ORDER BY round(avg(price_diff_percentage), 2) ;
 -- Cukr krystalový patří mezi potravinové kategorie, jejichž cena se zvyšovala nejméně. Výsledky ukazují, že cena této kategorie se meziročně dokonce snižovala, a to průměrně o -1,92 %. V období od roku 2006 do roku 2018 se průměrná cena za 1 kg cukru postupně zvyšovala a klesala z původních 21,73 Kč v roce 2006, na konečných 15,75 Kč v roce 2018. Na druhé straně, největší meziroční procentuální nárůst byl zaznamenán u paprik. Jejich cena se zvyšovala průměrně  o 7,29 %.
 
 -- HIGHES price difference
 SELECT * FROM v_eda_patka_project_food_price_trend
-ORDER BY `price difference %` DESC;
+ORDER BY price_diff_percentage DESC;
 -- LOWEST price difference
 SELECT * FROM v_eda_patka_project_food_price_trend
-ORDER BY `price difference %`;
+ORDER BY price_diff_percentage;
 -- K největšímu meziročnímu zdražení v období let 2006 až 2018 došlo u paprik mezi lety 2006 až 2007, a naopak nejvíce zlevnila meziročně rajská jablka, bylo to rovněž v letech 2006 až 2007.
 
 -- VIEW Průměrné ceny potravin - porovnání roků 2006 a 2018
@@ -231,12 +231,12 @@ SELECT
 	older_year.food_category,
 	older_year.value,
 	older_year.unit,
-	older_year.`year` AS 'older year',
-	older_year.avg_price AS 'older price',
-	newer_year.`year` AS 'newer year',
-	newer_year.avg_price AS 'newer price',
-	newer_year.avg_price - older_year.avg_price AS 'price_diff_CZK',
-	round((newer_year.avg_price - older_year.avg_price) / older_year.avg_price *100, 2) AS 'price_diff_%'
+	older_year.`year` AS older_year,
+	older_year.avg_price AS older_price,
+	newer_year.`year` AS newer_year,
+	newer_year.avg_price AS newer_price,
+	newer_year.avg_price - older_year.avg_price AS price_diff_czk,
+	round((newer_year.avg_price - older_year.avg_price) / older_year.avg_price *100, 2) AS price_diff_percentage
 FROM v_eda_patka_project_avg_food_price_by_year AS older_year
 JOIN v_eda_patka_project_avg_food_price_by_year AS newer_year
 	ON older_year.food_category = newer_year.food_category
@@ -244,7 +244,7 @@ JOIN v_eda_patka_project_avg_food_price_by_year AS newer_year
 			AND newer_year.`year` = 2018;
 		
 SELECT * FROM v_eda_patka_project_food_price_2006_compare_2018
-ORDER BY `price_diff_%` DESC;
+ORDER BY price_diff_percentage DESC;
 -- Nejvyšší procentuální nárůst ceny potravin, při porovnání roků 2006 a 2018, byl zaznamenán u másla, navýšení o 98,37 %. Následují vaječné těstoviny s 83,45 %, paprika s 71,25 % a rýže s 69,94 %. K výraznému zlevnění v období let 2006 až 2018 došlo u cukru a rajských jablek, s poklesem cen o -27,52 % a -23,07 %.
 
 
@@ -268,11 +268,11 @@ SELECT * FROM v_eda_patka_project_avg_wages_cr_2006_2018;
 -- VIEW Trend vývoje růstu mezd v ČR v letech 2006 - 2018
 CREATE OR REPLACE VIEW v_eda_patka_project_avg_wages_trend_diff_cr_2006_2018 AS 
 SELECT
-	awcr1.payroll_year AS 'older year', 
-	awcr1.avg_wages_CR_CZK AS 'older wages',
-	awcr2.payroll_year AS 'newer year',
-	awcr2.avg_wages_CR_CZK AS 'newer wages',
-	round((awcr2.avg_wages_CR_CZK - awcr1.avg_wages_CR_CZK) / awcr1.avg_wages_CR_CZK * 100, 2) AS 'avg wages diff (%)'
+	awcr1.payroll_year AS older_year, 
+	awcr1.avg_wages_CR_CZK AS older_wages,
+	awcr2.payroll_year AS newer_year,
+	awcr2.avg_wages_CR_CZK AS newer_wages,
+	round((awcr2.avg_wages_CR_CZK - awcr1.avg_wages_CR_CZK) / awcr1.avg_wages_CR_CZK * 100, 2) AS avg_wages_diff_percentage
 FROM v_eda_patka_project_avg_wages_cr_2006_2018 AS awcr1
 JOIN v_eda_patka_project_avg_wages_cr_2006_2018 AS awcr2
 	ON awcr2.industry_branch = awcr1.industry_branch 
@@ -285,7 +285,7 @@ CREATE OR REPLACE VIEW v_eda_patka_project_avg_food_price_cr_2006_2018 AS
 SELECT 
 	food_category,	-- sloupec food_category je je zde jen kvůli propojení v další tabulce
 	`year`,
-	round(avg(avg_price), 2) AS 'avg food price CR (CZK)'
+	round(avg(avg_price), 2) AS avg_food_price_cr_czk
 FROM v_eda_patka_project_avg_food_price_by_year
 GROUP BY `year`;
 
@@ -294,12 +294,12 @@ SELECT * FROM v_eda_patka_project_avg_food_price_cr_2006_2018;
 -- VIEW Trend vývoje růstu cen potravin v ČR v letech 2006 - 2018
 CREATE OR REPLACE VIEW v_eda_patka_project_avg_food_price_trend_diff_cr_2006_2018 AS 
 SELECT 
-	afp1.`year`AS 'older year', 
-	afp1.`avg food price CR (CZK)` AS 'older price', 
-	afp2.`year` AS 'newer year', 
-	afp2.`avg food price CR (CZK)` AS 'newer price',
-	afp2.`avg food price CR (CZK)` - afp1.`avg food price CR (CZK)` AS 'avg wages diff (CZK)',
-	round(avg(afp2.`avg food price CR (CZK)` - afp1.`avg food price CR (CZK)`) / afp1.`avg food price CR (CZK)` * 100, 2) AS 'avg price diff (%)'
+	afp1.`year`AS older_year, 
+	afp1.avg_food_price_cr_czk AS older_price, 
+	afp2.`year` AS newer_year, 
+	afp2.avg_food_price_cr_czk AS newer_price,
+	afp2.avg_food_price_cr_czk - afp1.avg_food_price_cr_czk AS avg_wages_diff_czk,
+	round(avg(afp2.avg_food_price_cr_czk - afp1.avg_food_price_cr_czk) / afp1.avg_food_price_cr_czk * 100, 2) AS avg_price_diff_percentage
 FROM v_eda_patka_project_avg_food_price_cr_2006_2018 AS afp1
 JOIN v_eda_patka_project_avg_food_price_cr_2006_2018 AS afp2 
 	ON afp2.food_category = afp1.food_category
@@ -309,16 +309,16 @@ GROUP BY afp1.`year`;
 -- VIEW Porovnání meziročního nárůstu průměrných cen a mezd v ČR
 CREATE OR REPLACE VIEW v_eda_patka_project_yoy_growth_prices_and_wages_comparison_in_CR AS 
 SELECT 
-	afptd.`older year`, 
-	awtd.`newer year`,
-	awtd.`avg wages diff (%)`,
-	afptd.`avg price diff (%)`,
-	afptd.`avg price diff (%)` - awtd.`avg wages diff (%)` AS price_wages_diff
+	afptd.older_year, 
+	awtd.newer_year,
+	awtd.avg_wages_diff_percentage,
+	afptd.avg_price_diff_percentage,
+	afptd.avg_price_diff_percentage - awtd.avg_wages_diff_percentage AS price_wages_diff
 FROM v_eda_patka_project_avg_food_price_trend_diff_cr_2006_2018 AS afptd
 JOIN v_eda_patka_project_avg_wages_trend_diff_cr_2006_2018 AS awtd 
-	ON awtd.`older year` = afptd.`older year`
-GROUP BY afptd.`older year`
-ORDER BY afptd.`avg price diff (%)` DESC;
+	ON awtd.older_year = afptd.older_year
+GROUP BY afptd.older_year
+ORDER BY afptd.avg_price_diff_percentage DESC;
 
 SELECT * FROM v_eda_patka_project_yoy_growth_prices_and_wages_comparison_in_CR
 ORDER BY price_wages_diff DESC;
@@ -326,7 +326,7 @@ ORDER BY price_wages_diff DESC;
 
 
 /*
- * 5. Má výška HDP vliv na změny ve mzdách a cenách potravin? Neboli, pokud HDP vzroste výrazněji v jednom roce, 
+ * Má výška HDP vliv na změny ve mzdách a cenách potravin? Neboli, pokud HDP vzroste výrazněji v jednom roce, 
  * projeví se to na cenách potravin či mzdách ve stejném nebo následujícím roce výraznějším růstem?
  */
 
@@ -340,11 +340,11 @@ SELECT * FROM v_eda_patka_project_gdp_cr_2006_2018;
 -- VIEW HDP trend - meziroční vývoj
 CREATE OR REPLACE VIEW v_eda_patka_project_yoy_gdp_trend_diff_cr_2006_2018 AS 
 SELECT 
-	gdp1.`year` AS 'older year', 
-	gdp1.GDP AS 'older gdp', 
-	gdp2.`year` AS 'newer year', 
-	gdp2.GDP AS 'newer gdp',
-	round(avg(gdp2.GDP - gdp1.GDP) / gdp1.GDP * 100, 2) AS 'gdp diff (%)'
+	gdp1.`year` AS older_year, 
+	gdp1.GDP AS older_gdp, 
+	gdp2.`year` AS newer_year, 
+	gdp2.GDP AS newer_gdp,
+	round(avg(gdp2.GDP - gdp1.GDP) / gdp1.GDP * 100, 2) AS gdp_diff_percentage
 FROM v_eda_patka_project_gdp_cr_2006_2018 AS gdp1
 JOIN v_eda_patka_project_gdp_cr_2006_2018 AS gdp2
 	ON gdp2.country = gdp1.country
@@ -356,40 +356,40 @@ SELECT * FROM v_eda_patka_project_yoy_gdp_trend_diff_cr_2006_2018;
 -- VIEW Meziroční vývoj Cen potravin, Mezd a HDP v ČR 2006-2018
 CREATE OR REPLACE VIEW v_eda_patka_project_yoy_foodprice_wages_gdp_trend AS 
 SELECT 
-	gdp.`older year`, 
-	gdp.`newer year`, 
-	fpt.`avg price diff (%)`, 
-	wag.`avg wages diff (%)`, 
-	gdp.`gdp diff (%)`
+	gdp.older_year, 
+	gdp.newer_year, 
+	fpt.avg_price_diff_percentage, 
+	wag.avg_wages_diff_percentage, 
+	gdp.gdp_diff_percentage
 FROM v_eda_patka_project_yoy_gdp_trend_diff_cr_2006_2018 AS gdp
 JOIN v_eda_patka_project_avg_wages_trend_diff_cr_2006_2018 AS wag
-	ON wag.`older year` = gdp.`older year`
+	ON wag.older_year = gdp.older_year
 JOIN v_eda_patka_project_avg_food_price_trend_diff_cr_2006_2018 AS fpt 
-	ON fpt.`older year` = gdp.`older year`;
+	ON fpt.older_year = gdp.older_year;
 
 SELECT * FROM v_eda_patka_project_yoy_foodprice_wages_gdp_trend;
--- ORDER BY `gdp diff (%)` DESC;
+-- ORDER BY gdp_diff_percentage DESC;
 
 -- Průměr meziročního růstu cen, mezd a HDP za celé období
 SELECT 
-	`older year` AS 'year from',
-	max(`newer year`) AS 'year to',
-	round(avg(`avg price diff (%)`), 2) AS 'avg foodprice growth trend (%)', 
-	round(avg(`avg wages diff (%)`), 2) AS 'avg wages growth trend (%)', 
-	round(avg(`gdp diff (%)`), 2) AS 'avg gdp growgh trend (%)'
+	older_year AS year_from,
+	max(newer_year) AS year_to,
+	round(avg(avg_price_diff_percentage), 2) AS avg_foodprice_growth_trend_percentage, 
+	round(avg(avg_wages_diff_percentage), 2) AS avg_wages_growth_trend_percentage, 
+	round(avg(gdp_diff_percentage), 2) AS avg_gdp_growgh_trend_percentage
 FROM v_eda_patka_project_yoy_foodprice_wages_gdp_trend;
 
 -- Nárůst za celé období
 SELECT 
-	`older year` AS 'year from',
-	max(`newer year`) AS 'year to',
-	round(sum(`avg price diff (%)`), 2) AS 'avg foodprice growth trend (%)', 
-	round(sum(`avg wages diff (%)`), 2) AS 'avg wages growth trend (%)', 
-	round(sum(`gdp diff (%)`), 2) AS 'avg gdp growgh trend (%)'
+	older_year AS year_from,
+	max(newer_year) AS year_to,
+	round(sum(avg_price_diff_percentage), 2) AS avg_foodprice_growth_trend_percentage, 
+	round(sum(avg_wages_diff_percentage), 2) AS avg_wages_growth_trend_percentage, 
+	round(sum(gdp_diff_percentage), 2) AS avg_gdp_growgh_trend_percentage
 FROM v_eda_patka_project_yoy_foodprice_wages_gdp_trend;
 
 -- Na základě analýzy průměrného růstu cen potravin, mezd a HDP v letech 2006–2018 nelze s jistotou potvrdit ani vyvrátit danou hypotézu. I když existuje jistá kauzalita, tato závislost se projevila nepravidelně a není jednoznačná pro všechny roky.
 -- Například v roce 2015 je patrný výrazný růst HDP o 5,39 %, ale průměrné ceny potravin ve stejném i v následujícím roce klesaly. Na druhé straně v roce 2012 došlo ke snížení HDP, ale ceny potravin i mzdy v následujících letech rostly. V roce 2013 je vidět menší pokles HDP o -0,05 %, ale ceny potravin stouply a mzdy klesly. V roce 2009 došlo k výraznému poklesu HDP o -4,66 %, ale ceny potravin se naopak snížily a mzdy rostly.
 -- Z dostupných dat lze tedy vyvodit, že výška HDP nemá jednoznačný vliv na změny cen potravin nebo platů. Průměrné ceny potravin, stejně jako průměrné mzdy, mohou stoupat i klesat nezávisle na vývoji HDP. 
--- V období od roku 2006 do 2018 převládaly mezi všemi sledovanými kategoriemi hodnoty meziročního růstu nad jejich poklesem. V případě HDP došlo ke třem meziročním poklesům, ceny potravin klesly ve dvou případech a mzdy klesly pouze v jednom roce.
+-- V období od roku 2006 do 2018 převládaly mezi všemi sledovanými kategoriemi hodnoty meziročního růstu nad jejich poklesem. V případě HDP došlo ke třem meziročním poklesům, ceny potravin klesly ve dvou případech a mzdy klesly pouze v jednom roce. 
 -- Průměrná roční rychlost růstu HDP mezi lety 2006 a 2018 byla 2,13 % a celkový nárůst za toto období činil 25,51 %. Ceny potravin stoupaly průměrně o 2,87 % ročně a celkově se zvýšily o 34,44 %. Mzdy pak rostly v průměru o 3,85 % ročně, celkově pak vzrostly o 46,22 %.
